@@ -13,6 +13,7 @@ from utils.lib import *
 from utils.dist import dist_init
 from dataset.tsv_dataset import make_data_sampler, make_batch_data_sampler
 torch.multiprocessing.set_sharing_strategy('file_system')
+from dataloader import omniDataLoader
 
 
 def get_loader_info(args, size_batch, dataset):
@@ -21,8 +22,10 @@ def get_loader_info(args, size_batch, dataset):
         images_per_gpu = min(
             size_batch * max(1, (args.max_video_len // dataset.max_video_len)),
             128)
+        print(f'images_per_gpu: {images_per_gpu}')
         images_per_batch = images_per_gpu * args.world_size
         iter_per_ep = len(dataset) // images_per_batch
+        print(f'iter_per_ep: {iter_per_ep}')
         if args.epochs == -1: # try to add iters into args
             assert args.ft_iters > 0
             num_iters = args.ft_iters
@@ -36,6 +39,7 @@ def get_loader_info(args, size_batch, dataset):
         iter_per_ep = None
         num_iters = None
     loader_info = (images_per_gpu, images_per_batch, iter_per_ep, num_iters)
+    print(f'loader info in getter: {loader_info}', flush=True)
     return loader_info
 
 
@@ -69,7 +73,11 @@ def make_data_loader(
         dataset, num_workers=args.num_workers, batch_sampler=batch_sampler,
         pin_memory=True, collate_fn=collate_fn
     )
+    # for items in data_loader:
+    #     print(f'first items: {items.keys()}, {len(items["img_key"]), len(items["input_text"]), items["label_imgs"].shape}', flush=True)
+    #     break
     meta_info = (images_per_batch, iter_per_ep, num_iters)
+    
     return data_loader, meta_info
 
 
@@ -77,8 +85,17 @@ def main_worker(args):
     """
 
     """
+    #print(args)
+    #print(args.cf)
+    #exit()
+    sorted_args = dict(sorted(args.items()))
+    print(sorted_args)
+    
     cf = import_filename(args.cf)
+    #print(f'cf: {cf}')
     Net, inner_collect_fn = cf.Net, cf.inner_collect_fn
+    #print(f'net: {Net}')
+    
 
     dataset_cf = import_filename(args.dataset_cf)
     BaseDataset = dataset_cf.BaseDataset
@@ -88,7 +105,7 @@ def main_worker(args):
     # init models
     logger.info('Building models...')
     model = Net(args)
-    print(f"Args: {edict(vars(args))}")
+    #print(f"Args: {edict(vars(args))}")
     if args.do_train:
         logger.warning("Do training...")
         # Prepare Dataset.
@@ -96,12 +113,25 @@ def main_worker(args):
             train_dataset = BaseDataset(args, args.train_yaml, split='train', preprocesser=model.feature_extractor)
             eval_dataset = BaseDataset(args, args.val_yaml, split='val', preprocesser=model.feature_extractor)
         else:
+            print(f'refer clip preprocess is false', flush=True)
             train_dataset = BaseDataset(args, args.train_yaml, split='train')
             eval_dataset = BaseDataset(args, args.val_yaml, split='val')
 
         train_info = get_loader_info(args, args.local_train_batch_size, 
             train_dataset)
+        print(f'train info: {train_info}', flush=True)
         _, images_per_batch, args.iter_per_ep, args.num_iters = train_info
+
+        train_dataloader_gen = omniDataLoader('train')
+        eval_dataloader_gen = omniDataLoader('test')
+        train_dataloader = DataLoader(train_dataloader_gen, batch_size=args.local_train_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
+        eval_dataloader = DataLoader(eval_dataloader_gen, batch_size=args.local_eval_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=False)
+
+        images_per_batch = args.train_batch_size
+        args.iter_per_ep = 283586 // images_per_batch
+        args.num_iters = args.iter_per_ep * args.epochs
+        print(f'new train info: {images_per_batch, args.iter_per_ep, args.num_iters}, {len(train_dataloader)}')
+
         if args.eval_step <= 5.0:
             args.eval_step =  args.eval_step * args.iter_per_ep
         if args.save_step <= 5.0:
@@ -133,10 +163,18 @@ def main_worker(args):
 
         trainer = Agent_LDM(args, model, optimizer, scheduler)
         trainer.setup_model_for_training()
-        
-        train_dataloader, train_info = make_data_loader(
-            args, args.local_train_batch_size, 
-            train_dataset, start_iter=trainer.global_step+1, loader_info=train_info)
+    
+
+        # train_dataloader, train_info = make_data_loader(
+        #     args, args.local_train_batch_size, 
+        #     train_dataset, start_iter=trainer.global_step+1, loader_info=train_info)
+
+        # eval_dataloader, eval_info = make_data_loader(
+        #     args, args.local_eval_batch_size, 
+        #     eval_dataset)
+
+
+            
         logger.info(
             f"Video Length {train_dataset.size_frame}")
         logger.info(
@@ -152,27 +190,18 @@ def main_worker(args):
             f"Evaluation happens every {args.eval_step} steps")
         logger.info(
             f"Checkpoint saves every {args.save_step} steps")
-
-        eval_dataloader, eval_info = make_data_loader(
-            args, args.local_eval_batch_size, 
-            eval_dataset)
-
+        
         trainer.train_eval_by_iter(train_loader=train_dataloader, eval_loader=eval_dataloader,  inner_collect_fn=inner_collect_fn)
-
+        
     if args.eval_visu:
         logger.warning("Do eval_visu...")
-        if getattr(args, 'refer_clip_preprocess', None):
-            eval_dataset = BaseDataset(args, args.val_yaml, split='val', preprocesser=model.feature_extractor)
-        else:
-            eval_dataset = BaseDataset(args, args.val_yaml, split='val')
-        eval_dataloader, eval_info = make_data_loader(
-            args, args.local_eval_batch_size, 
-            eval_dataset)
-
-
+        eval_dataloader_gen = omniDataLoader('test')
+        eval_dataloader = DataLoader(eval_dataloader_gen, batch_size=args.local_eval_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=False)
         trainer = Agent_LDM(args=args, model=model)
         trainer.eval(eval_dataloader, inner_collect_fn=inner_collect_fn,
-                     enc_dec_only='enc_dec_only' in args.eval_save_filename)
+                        enc_dec_only='enc_dec_only' in args.eval_save_filename)
+
+        
 
 if __name__ == "__main__":
     # parser = argparse.ArgumentParser()
@@ -181,4 +210,5 @@ if __name__ == "__main__":
     # main_worker(parsed_args)
     from utils.args import sharedArgs
     parsed_args = sharedArgs.parse_args()
+    #print(f'parsed: {parsed_args}')
     main_worker(parsed_args)

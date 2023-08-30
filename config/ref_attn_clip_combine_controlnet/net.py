@@ -113,6 +113,7 @@ class Net(nn.Module):
         if self.args.enable_xformers_memory_efficient_attention:
             if is_xformers_available():
                 unet.enable_xformers_memory_efficient_attention()
+                print("xformers enabled")
             else:
                 print("xformers is not available, therefore not enabled")
 

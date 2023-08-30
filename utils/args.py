@@ -142,7 +142,7 @@ class Args(object):
         parser.add_argument('--pretrained_model_path', default='diffusers/stable-diffusion-v1-4', type=str)
 
         # training configs
-        parser.add_argument("--num_workers", default=4,  type=int,
+        parser.add_argument("--num_workers", default=10,  type=int,
                             help="number of  workers")
         parser.add_argument('--node_split_sampler',
                             help="use node_split_sampler",  type=str_to_bool,
@@ -167,7 +167,7 @@ class Args(object):
         parser.add_argument('--save_step', default=5, type=float)
         parser.add_argument('--do_train', type=str_to_bool,
                             nargs='?', const=True, default=False)
-        parser.add_argument('--train_yaml', default=None, type=str)
+        parser.add_argument('--train_yaml', default='', type=str)
         parser.add_argument('--resume',  type=str_to_bool,
                             nargs='?', const=True, default=False)
         parser.add_argument('--null_caption',  type=str_to_bool,
@@ -238,7 +238,7 @@ class Args(object):
         parser.add_argument('--SD2_not_add_image_emb_noise', type=str_to_bool,
                             nargs='?', const=True, default=False, help='if not add noise to image embedding? default add noise')
         # evaluation configs
-        parser.add_argument('--val_yaml', default=None, type=str)
+        parser.add_argument('--val_yaml', default='', type=str)
         parser.add_argument("--max_eval_samples", default=None, type=int,
                             help="number eval samples")
         parser.add_argument("--debug_max_eval_samples", default=20, type=int,

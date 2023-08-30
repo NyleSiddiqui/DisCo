@@ -1,8 +1,14 @@
 exp_folder=$1
-pred_folder="${2:-${exp_folder}/pred_gs3.0_scale-cond1.0-ref1.0}"
+pred_folder="${2:-${exp_folder}/pred_gs7.5_scale-cond1.0-ref1.0}"
 gt_folder=${3:-${exp_folder}/gt}
+source activate /home/siddiqui/.conda/envs/diffusion
+module load ffmpeg
 
-# echo ${pred_folder}
+
+echo ${exp_folder}
+echo ${pred_folder}
+echo ${gt_folder}
+
 # # L1 SSIM LPIPS and PSNR
 python  tool/metrics/metric_center.py --root_dir ./blob_dir/debug_output/video_sythesis --path_gen ${pred_folder}/ --path_gt ${gt_folder} --type l1 ssim lpips psnr  clean-fid --write_metric_to ${exp_folder}/metrics_l1_ssim_lpips_psnr.json
 

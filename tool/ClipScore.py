@@ -48,10 +48,11 @@ class CLIPSimilarity(nn.Module):
 
 class BaseDataset(Dataset):
     def __init__(self, img_list, txt_list):
-
-        self.img_list = img_list
+        
+        self.img_list = sorted(os.listdir('/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb'))
         self.txt_list = txt_list
-
+        print(self.img_list, self.txt_list)
+        
         assert len(img_list) == len(txt_list), 'len_img must equal len_txt!'
 
         self.transform = transforms.Compose([

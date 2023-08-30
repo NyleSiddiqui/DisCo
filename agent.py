@@ -255,7 +255,6 @@ class Agent():
             self.model.backward(loss)
         elif self.args.use_amp:
             self.scaler.scale(loss).backward()
-            
         else:
             loss.backward()
             
@@ -392,6 +391,7 @@ class Agent():
             logger.warning('You should create a new config file and specify pretrained_model in Args when using eval.')
         # Wrap models before evaluating. This will support ddp evaluating.
         self.move_model_to_cuda()
+        self.setup_wandb()
         if self.args.dist:
             self.prepare_dist_model()
         eval_meter, eval_time = self.eval_fn(
@@ -562,6 +562,7 @@ class Agent():
             self.global_step = 0
         
         if self.args.eval_before_train and self.global_step == 0:
+            print('DONT DO THIS SHIT')
             logger.warning("Saving model...")
             self.save_checkpoint(str(self.global_step) + '.pth')
             logger.warning("Evaluating...")
@@ -585,6 +586,7 @@ class Agent():
         while self.global_step < len(train_loader):
             try:
                 inputs = next(train_iter)
+                
             except StopIteration:
                 logger.warning("Reaching end of the train_loader, terminating training loop")
                 break
@@ -907,11 +909,15 @@ class Agent():
         return optzr
     
     def setup_model_for_training(self):
+        print('entered')
         if self.args.resume:
-            if not self.args.deepspeed:
-                if os.path.exists(os.path.join(self.log_dir, self.last_checkpoint_filename)):
-                    logger.warning(f'Resuming.... from {self.last_checkpoint_filename}')
-                    self.load_checkpoint(self.last_checkpoint_filename)
+            print('entered2')
+            # if not self.args.deepspeed:
+            print('entered3')
+            if os.path.exists(os.path.join(self.log_dir, self.last_checkpoint_filename)):
+                logger.warning(f'Resuming.... from {self.last_checkpoint_filename}')
+                self.load_checkpoint(self.last_checkpoint_filename)
+                print('loaded')
             else:        
                 if isinstance(self.optimizer, list):
                     raise ValueError("self.optimizer is a list, which is incompatible with deepspeed")
@@ -959,10 +965,10 @@ class Agent_LDM(Agent):
                 logger.warning('Dangerous! You set resume=False. Auto cleaning all the logs under %s' % self.log_dir)
                 ensure_dirname(self.log_dir, override=True)
         
-        self.model.init_ddpm()
-        self.move_model_to_cuda()
-        if self.args.dist:
-            self.prepare_dist_model()
+        # self.model.init_ddpm()
+        # self.move_model_to_cuda()
+        # if self.args.dist:
+            # self.prepare_dist_model()
 
         epoch_iter = range(self.epoch + 1, self.args.epochs, 1)
         if len(epoch_iter):
@@ -1024,6 +1030,7 @@ class Agent_LDM(Agent):
             outputs = self.forward_step(inputs)
 
             self.check_outputs(outputs)
+            T.cuda.empty_cache()
             self.backward_step(outputs['loss_total'])
 
             if not self.args.deepspeed:
@@ -1042,7 +1049,7 @@ class Agent_LDM(Agent):
                 metric_and_loss[k] = self.reduce_mean(v)
             train_meter.update(metric_and_loss)
 
-            if (self.global_step + 1) % (int(getattr(self.args, 'save_setp', 8000)) + 1) == 0:
+            if (self.global_step + 1) % (int(getattr(self.args, 'save_step', 8000)) + 1) == 0:
                 self.save_checkpoint(str(self.global_step) + '.pth')
             train_iter.set_description("Metering:" + str(train_meter))
         train_time = train_timer.elapse(True)
@@ -1063,7 +1070,7 @@ class Agent_LDM(Agent):
             f'\t\tglobal_batch_size: {self.args.train_batch_size}, local_batch_size: {self.args.local_train_batch_size}.')
 
         # Train & Eval phase
-        train_pbar = tqdm(total=len(train_loader), disable=not use_tqdm)
+        train_pbar = tqdm(total=len(train_loader) * self.args.epochs, disable=not use_tqdm)
         train_meter = Meter()
         train_timer = Timer()
         metric = defaultdict(dict)
@@ -1071,8 +1078,8 @@ class Agent_LDM(Agent):
             train_pbar.update(self.global_step)
         else:
             self.global_step = 0
-
-        if self.args.eval_before_train and self.global_step == 0:
+        print(f'eval before train: {self.args.eval_before_train}')
+        if self.args.eval_before_train:
             # logger.warning("Saving model...")
             # self.save_checkpoint(str(self.global_step) + '.pth')
             if eval_loader:
@@ -1104,13 +1111,17 @@ class Agent_LDM(Agent):
                     self.update_metric_file(metric)
         # update tqdm to have previous info, load train_loader
         self.model.train()
+        print(f'Starting training: {len(train_loader) * self.args.epochs}')
         train_iter = iter(train_loader)
-        while self.global_step < len(train_loader):
+        while self.global_step < len(train_loader) * self.args.epochs:
             try:
                 inputs = next(train_iter)
+                #print(f'inputs during training: {inputs.keys()}', flush=True)
+                #exit()
             except StopIteration:
-                logger.warning("Reaching end of the train_loader, terminating training loop")
-                break
+                logger.warning(f"End of epoch {-(-self.global_step // len(train_loader))}")
+                train_iter = iter(train_loader)
+                inputs = next(train_iter)
 
             self.epoch = (self.global_step + 1) // self.args.iter_per_ep
             if not getattr(self.optimizer, 'is_enabled', lambda x: True)(self.global_step):
@@ -1122,6 +1133,10 @@ class Agent_LDM(Agent):
             inputs = self.prepare_batch(inputs)
             T.cuda.empty_cache()
             outputs = self.forward_step(inputs)
+            #print(f'model: {self.model}', flush=True)
+            #print(f'outputs during training: {outputs.keys()}', flush=True)
+            #print(f'outputs during training: {outputs["loss_total"]}', flush=True)
+            
 
             self.check_outputs(outputs)
             T.cuda.empty_cache()
@@ -1191,6 +1206,7 @@ class Agent_LDM(Agent):
                 train_timer = Timer()
             self.global_step += 1
             train_pbar.update(1)
+    
         if self.global_step % self.args.save_step != 0:
             logger.warning("Saving model...")
             self.save_checkpoint(self.last_checkpoint_filename)
@@ -1210,3 +1226,4 @@ class Agent_LDM(Agent):
                 # Save metric file
                 if is_main_process():
                     self.update_metric_file(metric)
+                    
