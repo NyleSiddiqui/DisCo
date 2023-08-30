@@ -147,13 +147,13 @@ class BaseDataset(TsvCondImgCompositeDataset):
     def __getitem__(self, idx):
         # try:
         raw_data = self.get_metadata(idx)
-        # except Exception as e:
-        #     print(e, self.yaml_file)
+
         img = raw_data['img']
         skeleton_img = raw_data['pose_img']
         reference_img = raw_data['reference_img']
         img_key = raw_data['img_key']
         ref_img_key = raw_data['ref_img_key']
+        
 
         reference_img_controlnet = reference_img
         state = torch.get_rng_state()
@@ -175,7 +175,6 @@ class BaseDataset(TsvCondImgCompositeDataset):
 
             reference_img_mask = self.augmentation(mask_img_ref, self.ref_transform_mask, state)
             reference_img_controlnet_mask = self.augmentation(mask_img_ref, self.cond_transform, state)  # controlnet path input
-
             # apply the mask
             reference_img = reference_img * reference_img_mask# foreground
             reference_img_vae = reference_img_vae * reference_img_controlnet_mask # foreground, but for vae
@@ -186,5 +185,4 @@ class BaseDataset(TsvCondImgCompositeDataset):
         if self.args.combine_use_mask:
             outputs['background_mask'] = (1 - reference_img_mask)
             outputs['background_mask_controlnet'] = (1 - reference_img_controlnet_mask)
-
         return outputs
