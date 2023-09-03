@@ -22,19 +22,23 @@ import timeit
 
 class omniDataLoader(Dataset):
     def __init__(self, data_split, height=270, width=480, shuffle=True):
-        self.hdf5_path = '/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120'
+        ## Paths for raw RGN NTU videos and human sem. seg. binary masks
         self.video_path = '/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'
         self.mask_path = '/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_masks/'
 
+        ## Load train or test csvs
         self.data_split = data_split
         if data_split == "train":
            self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Train_CV-diffusion.csv'
         else:
            self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Test_CV-diffusion.csv'
+
+        ## Only load first 5 actions for preliminary experiments
         self.rgb_list = [x for x in sorted(os.listdir(self.video_path)) if int(x[17:20]) < 6]
         self.pose_list = [x for x in sorted(os.listdir("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/")) if x.endswith('.npy') and int(x[17:20]) < 6]
         self.poses = {}
 
+        ## Pre-load all poses in RAM (doesnt really speed training up currently)
         for j, pose_path in enumerate(self.pose_list):
             if j % 1000 == 0:
                 print(j)
@@ -47,6 +51,7 @@ class omniDataLoader(Dataset):
         self.img_size = (224, 224)
         self.img_scale = (0.9, 1.) if data_split=='train' else (1.0, 1.0) 
         
+        ## Loop through csv, test on only first 50,000 samples (removes actions > 6) but train on all actions < 6
         for count, row in enumerate(open(self.annotations, 'r').readlines()[1:]):
             if data_split == 'test':
                 if count > 50000:
@@ -59,6 +64,8 @@ class omniDataLoader(Dataset):
                 self.videos.append(row)
         
         # if self.data_split == 'train':
+
+        ## Remove RGB videos with corrupted/missing pose info (direct product of NTU dataset)
         remove = []
         for j, vid in enumerate(self.videos):
             parsed_vid = '_'.join(vid.split('_')[:-1])
@@ -76,6 +83,7 @@ class omniDataLoader(Dataset):
         self.height = height
         self.width = width
 
+        ## Define transforms, taken from DisCo
         self.transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.RandomResizedCrop(
