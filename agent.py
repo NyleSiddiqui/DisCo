@@ -81,7 +81,7 @@ class WarmupLinearConstantLR(T.optim.lr_scheduler._LRScheduler):
             for base_lr in self.base_lrs
         ]
 
-
+## Super class for Agent_LDM
 class Agent():
     def __init__(self, args, model=None, optimizer=None, scheduler=None):
         super().__init__()
@@ -933,7 +933,7 @@ class Agent():
         self.prepare_dist_model()
             
 
-
+## Actual class used in finetune_sdm_yaml.py
 class Agent_LDM(Agent):
     def __init__(self, args, model, optimizer=None, scheduler=None):
         super().__init__(args, model, optimizer, scheduler)
@@ -1055,6 +1055,7 @@ class Agent_LDM(Agent):
         train_time = train_timer.elapse(True)
         return train_meter, train_time
 
+    ## Method explicitly called in finetune_sdm_yaml.py file
     def train_eval_by_iter(self, train_loader, eval_loader=None, use_tqdm=True, inner_collect_fn=None):
         if self.args.num_iters:
             logger.warning('Start train & val phase...')
@@ -1079,9 +1080,12 @@ class Agent_LDM(Agent):
         else:
             self.global_step = 0
         print(f'eval before train: {self.args.eval_before_train}')
+        ## run one testing epoch if arg is true
         if self.args.eval_before_train:
             # logger.warning("Saving model...")
             # self.save_checkpoint(str(self.global_step) + '.pth')
+
+        
             if eval_loader:
                 if self.args.eval_enc_dec_only:
                     logger.warning("Evaluating enc_dec_only...")
@@ -1113,12 +1117,15 @@ class Agent_LDM(Agent):
         self.model.train()
         print(f'Starting training: {len(train_loader) * self.args.epochs}')
         train_iter = iter(train_loader)
+
+        #initalize first dataloader, start training for (length of dataloader x # of epochs) steps
         while self.global_step < len(train_loader) * self.args.epochs:
             try:
                 inputs = next(train_iter)
                 #print(f'inputs during training: {inputs.keys()}', flush=True)
                 #exit()
             except StopIteration:
+                ## Dataloader has been fully looped through, effectively finishing one epoch. Re-init a new one and continue training
                 logger.warning(f"End of epoch {-(-self.global_step // len(train_loader))}")
                 train_iter = iter(train_loader)
                 inputs = next(train_iter)
@@ -1130,6 +1137,7 @@ class Agent_LDM(Agent):
             inputs['epoch'] = self.epoch
             inputs['global_step'] = self.global_step
 
+            ## Validate inputs and pass through model. Reference forward_step in net.py
             inputs = self.prepare_batch(inputs)
             T.cuda.empty_cache()
             outputs = self.forward_step(inputs)
@@ -1142,6 +1150,8 @@ class Agent_LDM(Agent):
             T.cuda.empty_cache()
             self.backward_step(outputs['loss_total'])
 
+
+            ## Mostly logging code beyond this point, backward pass + loss is already taken care of in above line
             if not self.args.deepspeed:
                 if (self.global_step + 1) % self.args.gradient_accumulate_steps == 0 and outputs.get('logits_last', True):
                     self.grad_clip()
