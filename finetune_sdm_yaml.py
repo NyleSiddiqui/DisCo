@@ -15,7 +15,7 @@ from dataset.tsv_dataset import make_data_sampler, make_batch_data_sampler
 torch.multiprocessing.set_sharing_strategy('file_system')
 from dataloader import omniDataLoader
 
-
+## Not used during NTU training
 def get_loader_info(args, size_batch, dataset):
     is_train = dataset.split == 'train'
     if is_train:
@@ -42,7 +42,7 @@ def get_loader_info(args, size_batch, dataset):
     print(f'loader info in getter: {loader_info}', flush=True)
     return loader_info
 
-
+## Not used during NTU training
 def make_data_loader(
         args, size_batch, dataset, start_iter=0, loader_info=None):
     is_train = dataset.split == 'train'
@@ -88,21 +88,23 @@ def main_worker(args):
     #print(args)
     #print(args.cf)
     #exit()
+    ## sort args and print for easy reference
     sorted_args = dict(sorted(args.items()))
     print(sorted_args)
-    
+
+    ## read config file, prepare model init
     cf = import_filename(args.cf)
     #print(f'cf: {cf}')
     Net, inner_collect_fn = cf.Net, cf.inner_collect_fn
     #print(f'net: {Net}')
     
-
+    ## Not used during NTU training
     dataset_cf = import_filename(args.dataset_cf)
     BaseDataset = dataset_cf.BaseDataset
 
     # args = update_args(parsed_args, args)
 
-    # init models
+    # init models - not used during NTU training
     logger.info('Building models...')
     model = Net(args)
     #print(f"Args: {edict(vars(args))}")
@@ -122,15 +124,20 @@ def main_worker(args):
         print(f'train info: {train_info}', flush=True)
         _, images_per_batch, args.iter_per_ep, args.num_iters = train_info
 
+
+        ## Start custom code, inits NTU dataloader
         train_dataloader_gen = omniDataLoader('train')
         eval_dataloader_gen = omniDataLoader('test')
         train_dataloader = DataLoader(train_dataloader_gen, batch_size=args.local_train_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
         eval_dataloader = DataLoader(eval_dataloader_gen, batch_size=args.local_eval_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=False)
 
+        ## hard coded values to train on NTU dataset for args.epochs
         images_per_batch = args.train_batch_size
         args.iter_per_ep = 283586 // images_per_batch
         args.num_iters = args.iter_per_ep * args.epochs
         print(f'new train info: {images_per_batch, args.iter_per_ep, args.num_iters}, {len(train_dataloader)}')
+        ## End custom code added
+        
 
         if args.eval_step <= 5.0:
             args.eval_step =  args.eval_step * args.iter_per_ep
@@ -161,10 +168,11 @@ def main_worker(args):
                 warmup_ratio=getattr(args, 'warmup_ratio', 0.05))
         scheduler = getattr(model, 'scheduler', scheduler)
 
+        ## Initalize model, prepare for training
         trainer = Agent_LDM(args, model, optimizer, scheduler)
         trainer.setup_model_for_training()
     
-
+        ##Uncomment these lines to train on TikTok dataset (remember to comment NTU dataloader code)
         # train_dataloader, train_info = make_data_loader(
         #     args, args.local_train_batch_size, 
         #     train_dataset, start_iter=trainer.global_step+1, loader_info=train_info)
@@ -190,7 +198,8 @@ def main_worker(args):
             f"Evaluation happens every {args.eval_step} steps")
         logger.info(
             f"Checkpoint saves every {args.save_step} steps")
-        
+
+        ## Begin actual training
         trainer.train_eval_by_iter(train_loader=train_dataloader, eval_loader=eval_dataloader,  inner_collect_fn=inner_collect_fn)
         
     if args.eval_visu:
