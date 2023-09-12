@@ -54,7 +54,7 @@ class ControlNetConditioningEmbedding(nn.Module):
     def __init__(
         self,
         conditioning_embedding_channels: int,
-        conditioning_channels: int = 3,
+        conditioning_channels: int = 15, # 5 frames, 3 channels (RGB)
         block_out_channels: Tuple[int] = (16, 32, 96, 256),
     ):
         super().__init__()

@@ -128,11 +128,11 @@ class omniDataLoader(Dataset):
         items = {}
         video_id = self.videos[index]
             
-        frame, skeleton, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet = item_creation(self, video_id, self.hdf5_path, self.video_path, self.mask_path, self.height, self.width)
+        frame, skeletons, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet = item_creation(self, video_id, self.video_path, self.mask_path, self.height, self.width)
         items['img_key'] = video_id
         items['input_text'] = 'NULL'
-        items['label_imgs'] = frame
-        items['cond_imgs'] = skeleton
+        items['label_imgs'] = frame # input image
+        items['cond_imgs'] = skeletons # target pose skeleton
         items['reference_img'] = ref_image 
         items['reference_img_controlnet'] = ref_image_controlnet
         items['reference_img_vae'] = ref_image_vae
@@ -142,26 +142,28 @@ class omniDataLoader(Dataset):
         return items
         
             
-def item_creation(self, video_id, hdf5_path, video_path, mask_path, height, width):
+def item_creation(self, video_id, video_path, mask_path, height, width):
     # Read video & skeleton, select given frame 
     split = video_id.split('_')
-    video_id, frame_ind = '_'.join(split[:-1]), int(split[-1])
+    video_id, frame_ind = '_'.join(split[:-1]), int(split[-1]) # frame_ind 1-indexed
   
     vr = VideoReader(os.path.join(video_path, video_id), height=height, width=width)
-    if frame_ind > 150:
-        print('img entered')
-        for i, frame in enumerate(vr):
-            if i == frame_id:
-                frame2 = vr[frame_ind].float() / 255.
-                frame = frame.float() / 255.
-                print(np.unique(frame-frame2))
+
     frame = vr[frame_ind].float() / 255.
     ref_image = vr[0].float() / 255.
     
     # skeleton = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", f'{video_id[:-8]}.skeleton.npy'), allow_pickle=True).item()['rgb_body0'][frame_ind].astype(float)
-    skeleton = self.poses[f'{video_id[:20]}'][frame_ind-1]
-    skeleton = skeleton_to_image(skeleton)
-    
+    # skeleton = skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - 1])
+    skeletons = []
+    if frame_ind > 4:
+        for i in range(1, 6):
+            skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - i]))]
+    else:
+        for i in range(1, frame_ind + 1):
+            skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - i]))]
+        for i in range(5 - frame_ind):
+            skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][0]))]
+    skeletons = torch.cat(skeletons, 0)
 
     # Permute before transforms
     frame = frame.numpy()
@@ -181,7 +183,7 @@ def item_creation(self, video_id, hdf5_path, video_path, mask_path, height, widt
     ref_image_mask = self.ref_transform_mask(master_ref_mask)
     ref_image_controlnet = self.transform(ref_image_controlnet)
     ref_image_controlnet_mask = self.cond_transform(master_ref_mask)
-    skeleton = self.cond_transform(skeleton)
+    # skeleton = self.cond_transform(skeleton)
 
 
     # Define vae after controlnet
@@ -200,7 +202,7 @@ def item_creation(self, video_id, hdf5_path, video_path, mask_path, height, widt
 
     #print(frame.shape, skeleton.shape, ref_image_controlnet.shape, ref_image_vae.shape, background_mask.shape, background_mask_controlnet.shape)
 
-    return frame, skeleton, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet
+    return frame, skeletons, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet
 
 
 def skeleton_to_image(keypoint):
@@ -211,12 +213,7 @@ def skeleton_to_image(keypoint):
 
     colors = [[255, 0, 0], [255, 85, 0], [255, 170, 0], [255, 255, 0], [170, 255, 0], [85, 255, 0], [0, 255, 0], [0, 255, 85], [0, 255, 170], [0, 255, 255], [0, 170, 255], [0, 85, 255], [0, 0, 255], [85, 0, 255], [170, 0, 255], [255, 0, 255], [255, 0, 170], [255, 0, 85], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255], [255,255,255]]
 
-
     canvas = np.zeros((1080, 1920, 3)).astype(np.uint8)
-    # keypoint = ((keypoint) * 135) # Enlarge Pose
-    # keypoint[:, 1] *= -1
-    # keypoint[:, 0] += 200 # Horizontal Translation
-    # keypoint[:, 1] += 150 # Vertical Translation
     stickwidth = 3
     for i in range(25):
         x, y = keypoint[i, 0:2]
@@ -251,9 +248,7 @@ def skeleton_to_image(keypoint):
         
 if __name__ == '__main__':
     shuffle = False
-    print('entered')
     data_generator = omniDataLoader('train', shuffle=shuffle)
-    print('entered2')
     dataloader = DataLoader(data_generator, batch_size=4, num_workers=8, shuffle=False, drop_last=True)
     start = timeit.default_timer()
     for dict in tqdm(dataloader):

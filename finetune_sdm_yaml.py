@@ -109,7 +109,6 @@ def main_worker(args):
     model = Net(args)
     #print(f"Args: {edict(vars(args))}")
     if args.do_train:
-        logger.warning("Do training...")
         # Prepare Dataset.
         if getattr(args, 'refer_clip_preprocess', None):
             train_dataset = BaseDataset(args, args.train_yaml, split='train', preprocesser=model.feature_extractor)
@@ -125,7 +124,7 @@ def main_worker(args):
         _, images_per_batch, args.iter_per_ep, args.num_iters = train_info
 
 
-        ## Start custom code, inits NTU dataloader
+        # Start custom code, inits NTU dataloader
         train_dataloader_gen = omniDataLoader('train')
         eval_dataloader_gen = omniDataLoader('test')
         train_dataloader = DataLoader(train_dataloader_gen, batch_size=args.local_train_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
@@ -147,9 +146,9 @@ def main_worker(args):
         args.eval_step = int(max(10, args.eval_step))
         args.save_step = int(max(10, args.save_step))
         # if args.deepspeed:
-        #     # from deepspeed.ops.adm import FusedAdam as Adam
-        #     from deepspeed.ops.adam import DeepSpeedCPUAdam as Adam
-        #     optimizer = Adam(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.98), weight_decay=1e-3)
+        #     from deepspeed.ops.adam import FusedAdam as Adam # uses GPU
+        #     # from deepspeed.ops.adam import DeepSpeedCPUAdam as Adam
+        #     optimizer = Adam(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.98), weight_decay=args.decay)
         # else:
         from torch.optim import AdamW 
         optimizer = AdamW(model.parameters(), lr=args.learning_rate, betas=(0.9, 0.98), weight_decay=args.decay)
@@ -216,7 +215,6 @@ if __name__ == "__main__":
     # parser = argparse.ArgumentParser()
     # parser = add_custom_arguments(parser)
     # parsed_args = parser.parse_args()
-    # main_worker(parsed_args)
     from utils.args import sharedArgs
     parsed_args = sharedArgs.parse_args()
     #print(f'parsed: {parsed_args}')

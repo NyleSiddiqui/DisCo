@@ -147,7 +147,7 @@ class Agent():
                 if label_imgs is not None:
                     img_dict[f"{prefix}_label_img"].append(wandb.Image(ldm_tensor2img(label_imgs[i], preprocess=True)))
                 if cond_imgs is not None:
-                    img_dict[f"{prefix}_cond_img"].append(wandb.Image(ldm_tensor2img(cond_imgs[i])))
+                    img_dict[f"{prefix}_cond_img"].append(wandb.Image(ldm_tensor2img(cond_imgs[i][0:1, :, :])))
                 if ref_imgs is not None:
                     img_dict[f"{prefix}_ref_img"].append(wandb.Image(ldm_tensor2img(ref_imgs[i], preprocess=True)))
             log_img_to_wandb(img_dict, step)

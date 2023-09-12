@@ -610,7 +610,7 @@ class Net(nn.Module):
         return outputs
 
     def forward_train_multicontrol(self, inputs, outputs):
-
+        print('----------------------------------------------------forward_train_multicontrol')
         # use CFG
         if self.args.drop_ref > 0:
             p = random.random()
@@ -857,7 +857,7 @@ class Net(nn.Module):
         controlnet_conditioning_scale_cond = self.controlnet_conditioning_scale_cond
         controlnet_conditioning_scale_ref = self.controlnet_conditioning_scale_ref
         image_pose = self.prepare_image(
-            image=inputs['cond_imgs'].to(dtype=self.dtype),
+            image=inputs['cond_imgs'][:, 0, :, :].unsqueeze(1).repeat(1, inputs['cond_imgs'].size(1) / 3, 1, 1).to(dtype=self.dtype),
             width=w,
             height=h,
             batch_size=b * self.args.num_inf_images_per_prompt,
@@ -1083,11 +1083,12 @@ def inner_collect_fn(args, inputs, outputs, log_dir, global_step, eval_save_file
             except Exception as e:
                 print(f'some errors happened in saving logits_imgs: {e}')
         if 'cond_imgs' in sample: # pose
-            image = tensor2pil(sample['cond_imgs'], resize_img=args.pos_resize_img, img_target_size=ref_img_size)[0]
-            try:
-                image.save(os.path.join(cond_save_path, prefix + postfix + '.png'))
-            except Exception as e:
-                print(f'some errors happened in saving logits_imgs: {e}')
+            for i in range(sample['cond_imgs'].size(0)):
+                image = tensor2pil(sample['cond_imgs'][i:i + 1, :, :], resize_img=args.pos_resize_img, img_target_size=ref_img_size)[0]
+                try:
+                    image.save(os.path.join(cond_save_path, prefix + postfix + f"_frame_{i}" + '.png'))
+                except Exception as e:
+                    print(f'some errors happened in saving logits_imgs: {e}')
         if 'reference_img' in sample:
             image = sample['reference_img']
             image = (image / 2 + 0.5).clamp(0, 1)
@@ -1113,7 +1114,7 @@ def tensor2pil(images, resize_img=False, img_target_size=None):
         images = images[None, ...]
     images = (images * 255).round().astype("uint8")
     if images.shape[-1] == 1:
-        # special case for grayscale (single channel) images
+        # special case for grayscale (single channel) images; pose should be grayscale
         if resize_img:
             assert img_target_size is not None
             img_target_size = img_target_size.squeeze()

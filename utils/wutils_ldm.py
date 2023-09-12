@@ -55,11 +55,13 @@ from torch import autocast
 logging.getLogger().setLevel(logging.WARNING)
 simplefilter(action='ignore', category=FutureWarning)
 
+# I don't think this is used anywhere - Kevin
 def ldm_tensor2img_wt(input):
+    print('------------------------------------------------------------ldm_tensor2img_wt')
     assert len(input.shape) == 3
     return Image.fromarray(input.mul(255).add_(0.5).clamp_(0.5, 255).permute(1,2,0).to("cpu", torch.uint8).numpy())
 
-def ldm_tensor2img(input, preprocess=False):
+def ldm_tensor2img(input, preprocess=False, is_pose=False):
     if preprocess:
         input = (input / 2 + 0.5).clamp(0, 1)
     assert len(input.shape) == 3

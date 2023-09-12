@@ -1,0 +1,428 @@
+wandb_version: 1
+
+root_dir:
+  desc: null
+  value: /home/kzhai/DisCo/
+cf:
+  desc: null
+  value: config/ref_attn_clip_combine_controlnet/tiktok_S256L16_xformers_tsv.py
+pretrained_model:
+  desc: null
+  value: null
+pretrained_model_lora:
+  desc: null
+  value: null
+pretrained_model_controlnet:
+  desc: null
+  value: null
+debug:
+  desc: null
+  value: false
+debug_seed:
+  desc: null
+  value: false
+debug_dataloader:
+  desc: null
+  value: false
+log_dir:
+  desc: null
+  value: /home/kzhai/DisCo/exp/ntu60-fixpose
+deepspeed:
+  desc: null
+  value: true
+use_amp:
+  desc: null
+  value: false
+seed:
+  desc: null
+  value: 42
+fix_dist_seed:
+  desc: null
+  value: true
+tiktok_data_root:
+  desc: null
+  value: /home/siddiqui/TSV_dataset/TiktokDance/
+img_size:
+  desc: null
+  value:
+  - 256
+  - 256
+max_video_len:
+  desc: null
+  value: 1
+debug_max_video_len:
+  desc: null
+  value: 1
+conds:
+  desc: null
+  value:
+  - poses
+  - masks
+gradient_checkpointing:
+  desc: null
+  value: true
+find_unused_parameters:
+  desc: null
+  value: false
+enable_xformers_memory_efficient_attention:
+  desc: null
+  value: true
+trainable_modules:
+  desc: null
+  value: null
+scale_factor:
+  desc: null
+  value: 0.18215
+loss_target:
+  desc: null
+  value: noise
+x0_steps:
+  desc: null
+  value: 200
+pretrained_model_path:
+  desc: null
+  value: /home/siddiqui/DisCo/sd-image-variations-diffusers/
+num_workers:
+  desc: null
+  value: 12
+node_split_sampler:
+  desc: null
+  value: false
+gradient_accumulate_steps:
+  desc: null
+  value: 1
+max_grad_norm:
+  desc: null
+  value: -1
+learning_rate:
+  desc: null
+  value: 0.0002
+decay:
+  desc: null
+  value: 0.001
+warmup_ratio:
+  desc: null
+  value: 0.1
+max_train_samples:
+  desc: null
+  value: null
+debug_max_train_samples:
+  desc: null
+  value: 100
+drop_text:
+  desc: null
+  value: 1.0
+local_train_batch_size:
+  desc: null
+  value: 64
+epochs:
+  desc: null
+  value: 20
+eval_step:
+  desc: null
+  value: 1000
+save_step:
+  desc: null
+  value: 1000
+do_train:
+  desc: null
+  value: true
+train_yaml:
+  desc: null
+  value: ../TSV_dataset/composite_offset/train_TiktokDance-poses-masks.yaml
+resume:
+  desc: null
+  value: false
+null_caption:
+  desc: null
+  value: false
+refer_sdvae:
+  desc: null
+  value: true
+controlnet_conditioning_scale_cond:
+  desc: null
+  value: 1.0
+controlnet_conditioning_scale_ref:
+  desc: null
+  value: 1.0
+unet_unfreeze_type:
+  desc: null
+  value: all
+controlnet_attn:
+  desc: null
+  value: false
+use_cfg:
+  desc: null
+  value: false
+refer_clip_preprocess:
+  desc: null
+  value: false
+refer_clip_proj:
+  desc: null
+  value: false
+ref_null_caption:
+  desc: null
+  value: false
+combine_clip_local:
+  desc: null
+  value: true
+combine_use_mask:
+  desc: null
+  value: true
+drop_ref:
+  desc: null
+  value: 0.0
+my_adapter:
+  desc: null
+  value: false
+pos_resize_img:
+  desc: null
+  value: false
+fg_variation:
+  desc: null
+  value: 0.0
+strong_aug_stage2:
+  desc: null
+  value: false
+strong_rand_stage2:
+  desc: null
+  value: false
+strong_aug_stage1:
+  desc: null
+  value: false
+stage1_pretrain_path:
+  desc: null
+  value: mp_rank_00_model_states.pt
+stage2_only_pose:
+  desc: null
+  value: false
+constant_lr:
+  desc: null
+  value: false
+SD2_not_add_image_emb_noise:
+  desc: null
+  value: false
+val_yaml:
+  desc: null
+  value: ../TSV_dataset/composite_offset/new10val_TiktokDance-poses-masks.yaml
+max_eval_samples:
+  desc: null
+  value: null
+debug_max_eval_samples:
+  desc: null
+  value: 20
+pose_normalize:
+  desc: null
+  value: false
+normalize_by_1st_frm:
+  desc: null
+  value: false
+local_eval_batch_size:
+  desc: null
+  value: 64
+eval_visu:
+  desc: null
+  value: false
+eval_visu_trainsample:
+  desc: null
+  value: false
+eval_visu_imagefolder:
+  desc: null
+  value: false
+eval_visu_changepose:
+  desc: null
+  value: false
+eval_visu_changefore:
+  desc: null
+  value: false
+eval_save_filename:
+  desc: null
+  value: eval_visu
+eval_before_train:
+  desc: null
+  value: true
+eval_scheduler:
+  desc: null
+  value: ddim
+eval_enc_dec_only:
+  desc: null
+  value: false
+num_inf_videos_per_prompt:
+  desc: null
+  value: 1
+num_inference_steps:
+  desc: null
+  value: 50
+guidance_scale:
+  desc: null
+  value: 7.5
+stepwise_sample_depth:
+  desc: null
+  value: -1
+interpolation:
+  desc: null
+  value: null
+interpolate_mode:
+  desc: null
+  value: null
+visu_save:
+  desc: null
+  value: false
+freeze_pose:
+  desc: null
+  value: false
+freeze_background:
+  desc: null
+  value: false
+ft_img_num:
+  desc: null
+  value: 0
+ft_one_ref_image:
+  desc: null
+  value: true
+ft_iters:
+  desc: null
+  value: null
+s1:
+  desc: null
+  value: 1.0
+s2:
+  desc: null
+  value: 1.0
+ft_idx:
+  desc: null
+  value: null
+ref_mode:
+  desc: null
+  value: first
+__module__:
+  desc: null
+  value: mymodule
+task_name:
+  desc: null
+  value: ref_attn_clip_combine_controlnet
+method_name:
+  desc: null
+  value: tiktok_S256L16_xformers_tsv
+dataset_cf:
+  desc: null
+  value: dataset/tiktok_controlnet_t2i_imagevar_combine_tsv.py
+img_full_size:
+  desc: null
+  value:
+  - 256
+  - 256
+fps:
+  desc: null
+  value: 5
+data_dir:
+  desc: null
+  value: ./blob_dir/debug_output/video_sythesis/dataset
+debug_train_yaml:
+  desc: null
+  value: ./blob_dir/debug_output/video_sythesis/dataset/composite/val_TiktokDance-poses.yaml
+debug_val_yaml:
+  desc: null
+  value: ./blob_dir/debug_output/video_sythesis/dataset/composite/val_TiktokDance-poses.yaml
+sd15_path:
+  desc: null
+  value: /home/kzhai/DisCo/diffusers/stable-diffusion-v1-5-2
+freeze_unet:
+  desc: null
+  value: true
+num_inf_images_per_prompt:
+  desc: null
+  value: 1
+__doc__:
+  desc: null
+  value: null
+n_gpu:
+  desc: null
+  value: 1
+local_size:
+  desc: null
+  value: 1
+wandb_project:
+  desc: null
+  value: exp
+project_name:
+  desc: null
+  value: ntu60-fixpose
+num_gpus:
+  desc: null
+  value: 1
+distributed:
+  desc: null
+  value: true
+num_nodes:
+  desc: null
+  value: 1
+word_size:
+  desc: null
+  value: 1
+local_rank:
+  desc: null
+  value: 0
+rank:
+  desc: null
+  value: 0
+node_id:
+  desc: null
+  value: 0
+dist:
+  desc: null
+  value: true
+nodes:
+  desc: null
+  value: 1
+world_size:
+  desc: null
+  value: 1
+train_batch_size:
+  desc: null
+  value: 64
+eval_batch_size:
+  desc: null
+  value: 64
+iter_per_ep:
+  desc: null
+  value: 1418
+num_iters:
+  desc: null
+  value: 28360
+_wandb:
+  desc: null
+  value:
+    python_version: 3.11.4
+    cli_version: 0.15.10
+    framework: huggingface
+    huggingface_version: 4.32.1
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1694535411.258233
+    t:
+      1:
+      - 1
+      - 11
+      - 41
+      - 49
+      - 55
+      - 71
+      - 83
+      2:
+      - 1
+      - 11
+      - 41
+      - 49
+      - 55
+      - 71
+      - 83
+      3:
+      - 13
+      - 16
+      - 23
+      4: 3.11.4
+      5: 0.15.10
+      6: 4.32.1
+      8:
+      - 5
