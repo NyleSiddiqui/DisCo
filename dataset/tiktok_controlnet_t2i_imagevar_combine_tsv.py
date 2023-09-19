@@ -158,7 +158,19 @@ class BaseDataset(TsvCondImgCompositeDataset):
         reference_img_controlnet = reference_img
         state = torch.get_rng_state()
         img = self.augmentation(img, self.transform, state)
-        skeleton_img = self.augmentation(skeleton_img, self.cond_transform, state)
+        
+        skeleton_imgs = []
+        if idx > 4:
+            for i in range(1, 6):
+                skeleton_imgs += [self.augmentation(self.get_metadata(idx - i)['pose_img'], self.cond_transform, state)]
+        else:
+            for i in range(1, idx + 1):
+                skeleton_imgs += [self.augmentation(self.get_metadata(idx - i)['pose_img'], self.cond_transform, state)]
+            for i in range(5 - idx):
+                skeleton_imgs += [self.augmentation(self.get_metadata(0)['pose_img'], self.cond_transform, state)]
+        skeleton_imgs = torch.cat(skeleton_imgs, 0)
+        
+        # skeleton_img = self.augmentation(skeleton_img, self.cond_transform, state)
         reference_img_controlnet = self.augmentation(reference_img_controlnet, self.transform, state) # controlnet path input
         if getattr(self.args, 'refer_clip_preprocess', None):
             reference_img = self.preprocesser(reference_img).pixel_values[0]  # use clip preprocess
@@ -181,7 +193,7 @@ class BaseDataset(TsvCondImgCompositeDataset):
             reference_img_controlnet = reference_img_controlnet * (1 - reference_img_controlnet_mask)# background
 
         caption = raw_data['caption']
-        outputs = {'img_key':img_key, 'input_text': caption, 'label_imgs': img, 'cond_imgs': skeleton_img, 'reference_img': reference_img, 'reference_img_controlnet':reference_img_controlnet, 'reference_img_vae':reference_img_vae}
+        outputs = {'img_key':img_key, 'input_text': caption, 'label_imgs': img, 'cond_imgs': skeleton_imgs, 'reference_img': reference_img, 'reference_img_controlnet':reference_img_controlnet, 'reference_img_vae':reference_img_vae}
         if self.args.combine_use_mask:
             outputs['background_mask'] = (1 - reference_img_mask)
             outputs['background_mask_controlnet'] = (1 - reference_img_controlnet_mask)

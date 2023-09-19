@@ -857,7 +857,8 @@ class Net(nn.Module):
         controlnet_conditioning_scale_cond = self.controlnet_conditioning_scale_cond
         controlnet_conditioning_scale_ref = self.controlnet_conditioning_scale_ref
         image_pose = self.prepare_image(
-            image=inputs['cond_imgs'][:, 0, :, :].unsqueeze(1).repeat(1, inputs['cond_imgs'].size(1) / 3, 1, 1).to(dtype=self.dtype),
+            # image=inputs['cond_imgs'][:, 0:3, :, :].repeat(1, int(inputs['cond_imgs'].size(1) / 3), 1, 1).to(dtype=self.dtype),
+            image=inputs['cond_imgs'],
             width=w,
             height=h,
             batch_size=b * self.args.num_inf_images_per_prompt,

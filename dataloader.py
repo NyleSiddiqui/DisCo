@@ -25,6 +25,7 @@ class omniDataLoader(Dataset):
         ## Paths for raw RGN NTU videos and human sem. seg. binary masks
         self.video_path = '/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'
         self.mask_path = '/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_masks/'
+        self.pose_path = '/home/kzhai/frame_data/NTU_RGBD_120_pose/images/'
 
         ## Load train or test csvs
         self.data_split = data_split
@@ -34,17 +35,16 @@ class omniDataLoader(Dataset):
            self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Test_CV-diffusion.csv'
 
         ## Only load first 5 actions for preliminary experiments
-        self.rgb_list = [x for x in sorted(os.listdir(self.video_path)) if int(x[17:20]) < 6]
-        self.pose_list = [x for x in sorted(os.listdir("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/")) if x.endswith('.npy') and int(x[17:20]) < 6]
-        self.poses = {}
+        # self.pose_list = [x for x in sorted(os.listdir("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/")) if x.endswith('.npy') and int(x[17:20]) < 6]
+        # self.poses = {}
 
         ## Pre-load all poses in RAM (doesnt really speed training up currently)
-        for j, pose_path in enumerate(self.pose_list):
-            if j % 1000 == 0:
-                print(j)
+        # for j, pose_path in enumerate(self.pose_list):
+        #     if j % 1000 == 0:
+        #         print(j)
 
-            pose = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", pose_path), allow_pickle=True).item()['rgb_body0'].astype(float)
-            self.poses[pose_path[:20]] = pose
+        #     pose = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", pose_path), allow_pickle=True).item()['rgb_body0'].astype(float)
+        #     self.poses[pose_path[:20]] = pose
         
 
         self.videos = []
@@ -66,19 +66,18 @@ class omniDataLoader(Dataset):
         # if self.data_split == 'train':
 
         ## Remove RGB videos with corrupted/missing pose info (direct product of NTU dataset)
-        remove = []
-        for j, vid in enumerate(self.videos):
-            parsed_vid = '_'.join(vid.split('_')[:-1])
-            try:
-                found = self.pose_list.index(f'{parsed_vid[:-8]}.skeleton.npy')
-            except ValueError:
-                remove.append(vid)
-        for val in remove:
-            self.videos.remove(val)
-        if shuffle and data_split == 'train':
-            random.shuffle(self.videos)
+        # remove = []
+        # for j, vid in enumerate(self.videos):
+        #     parsed_vid = '_'.join(vid.split('_')[:-1])
+        #     try:
+        #         found = self.pose_list.index(f'{parsed_vid[:-8]}.skeleton.npy')
+        #     except ValueError:
+        #         remove.append(vid)
+        # for val in remove:
+        #     self.videos.remove(val)
+        # if shuffle and data_split == 'train':
+        #     random.shuffle(self.videos)
             
-        # print(len(self.videos), len(self.rgb_list), self.videos[0])
 
         self.height = height
         self.width = width
@@ -152,18 +151,25 @@ def item_creation(self, video_id, video_path, mask_path, height, width):
     frame = vr[frame_ind].float() / 255.
     ref_image = vr[0].float() / 255.
     
-    # skeleton = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", f'{video_id[:-8]}.skeleton.npy'), allow_pickle=True).item()['rgb_body0'][frame_ind].astype(float)
+    # If not conditioning on previous frames
     # skeleton = skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - 1])
-    skeletons = []
-    if frame_ind > 4:
-        for i in range(1, 6):
-            skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - i]))]
-    else:
-        for i in range(1, frame_ind + 1):
-            skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - i]))]
-        for i in range(5 - frame_ind):
-            skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][0]))]
-    skeletons = torch.cat(skeletons, 0)
+    # skeleton = self.cond_transform(skeleton)
+    if int(video_id[17:20]) < 6:
+        skeleton_np = cv2.imread(f"{self.pose_path}{video_id[:20]}/{frame_ind - 1}")
+        skeleton = Image.fromarray(cv2.cvtColor(skeleton_np, cv2.COLOR_BGR2RGB))
+        skeleton = self.cond_transform(transforms.CenterCrop([600, 750])(skeleton))
+    
+    # If conditioning on previous frames
+    # skeletons = []
+    # if frame_ind > 4:
+    #     for i in range(1, 6):
+    #         skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - i]))]
+    # else:
+    #     for i in range(1, frame_ind + 1):
+    #         skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][frame_ind - i]))]
+    #     for i in range(5 - frame_ind):
+    #         skeletons += [self.cond_transform(skeleton_to_image(self.poses[f'{video_id[:20]}'][0]))]
+    # skeletons = torch.cat(skeletons, 0)
 
     # Permute before transforms
     frame = frame.numpy()
@@ -183,7 +189,6 @@ def item_creation(self, video_id, video_path, mask_path, height, width):
     ref_image_mask = self.ref_transform_mask(master_ref_mask)
     ref_image_controlnet = self.transform(ref_image_controlnet)
     ref_image_controlnet_mask = self.cond_transform(master_ref_mask)
-    # skeleton = self.cond_transform(skeleton)
 
 
     # Define vae after controlnet
@@ -202,7 +207,8 @@ def item_creation(self, video_id, video_path, mask_path, height, width):
 
     #print(frame.shape, skeleton.shape, ref_image_controlnet.shape, ref_image_vae.shape, background_mask.shape, background_mask_controlnet.shape)
 
-    return frame, skeletons, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet
+    return frame, skeleton, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet
+    # return frame, skeletons, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet
 
 
 def skeleton_to_image(keypoint):

@@ -107,21 +107,21 @@ def main_worker(args):
     # init models - not used during NTU training
     logger.info('Building models...')
     model = Net(args)
-    #print(f"Args: {edict(vars(args))}")
+    # #print(f"Args: {edict(vars(args))}")
     if args.do_train:
-        # Prepare Dataset.
-        if getattr(args, 'refer_clip_preprocess', None):
-            train_dataset = BaseDataset(args, args.train_yaml, split='train', preprocesser=model.feature_extractor)
-            eval_dataset = BaseDataset(args, args.val_yaml, split='val', preprocesser=model.feature_extractor)
-        else:
-            print(f'refer clip preprocess is false', flush=True)
-            train_dataset = BaseDataset(args, args.train_yaml, split='train')
-            eval_dataset = BaseDataset(args, args.val_yaml, split='val')
+        # # Prepare Dataset.
+        # if getattr(args, 'refer_clip_preprocess', None):
+        #     train_dataset = BaseDataset(args, args.train_yaml, split='train', preprocesser=model.feature_extractor)
+        #     eval_dataset = BaseDataset(args, args.val_yaml, split='val', preprocesser=model.feature_extractor)
+        # else:
+        #     print(f'refer clip preprocess is false', flush=True)
+        #     train_dataset = BaseDataset(args, args.train_yaml, split='train')
+        #     eval_dataset = BaseDataset(args, args.val_yaml, split='val')
 
-        train_info = get_loader_info(args, args.local_train_batch_size, 
-            train_dataset)
-        print(f'train info: {train_info}', flush=True)
-        _, images_per_batch, args.iter_per_ep, args.num_iters = train_info
+        # train_info = get_loader_info(args, args.local_train_batch_size, 
+        #     train_dataset)
+    #     print(f'train info: {train_info}', flush=True)
+        # _, images_per_batch, args.iter_per_ep, args.num_iters = train_info
 
 
         # Start custom code, inits NTU dataloader
@@ -182,21 +182,21 @@ def main_worker(args):
 
 
             
-        logger.info(
-            f"Video Length {train_dataset.size_frame}")
-        logger.info(
-            f"Total batch size {images_per_batch}")
-        logger.info(
-            f"Total training steps {args.num_iters}")
-        logger.info(f"Starting train iter: {trainer.global_step+1}")
-        logger.info(
-            f"Training steps per epoch (accumulated) {args.iter_per_ep}")
-        logger.info(
-            f"Training dataloader length {len(train_dataloader)}")
-        logger.info(
-            f"Evaluation happens every {args.eval_step} steps")
-        logger.info(
-            f"Checkpoint saves every {args.save_step} steps")
+        # logger.info(
+        #     f"Video Length {train_dataset.size_frame}")
+        # logger.info(
+        #     f"Total batch size {images_per_batch}")
+        # logger.info(
+        #     f"Total training steps {args.num_iters}")
+        # logger.info(f"Starting train iter: {trainer.global_step+1}")
+        # logger.info(
+        #     f"Training steps per epoch (accumulated) {args.iter_per_ep}")
+        # logger.info(
+        #     f"Training dataloader length {len(train_dataloader)}")
+        # logger.info(
+        #     f"Evaluation happens every {args.eval_step} steps")
+        # logger.info(
+        #     f"Checkpoint saves every {args.save_step} steps")
 
         ## Begin actual training
         trainer.train_eval_by_iter(train_loader=train_dataloader, eval_loader=eval_dataloader,  inner_collect_fn=inner_collect_fn)

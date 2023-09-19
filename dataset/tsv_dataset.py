@@ -380,7 +380,6 @@ class CompositeTSVFile(object):
         start = time.time()
         result = self.tsvs[idx_source].seek(idx_row)
         end = time.time()
-        print('---------------------------------------- tsv_dataset __getitem__', idx_source, idx_row, result)
         if end - start > 10:
             import logging
             logging.warning('too long to load fname = {}, source={}, row={}, time={}'.format(

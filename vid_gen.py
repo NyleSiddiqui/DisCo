@@ -3,7 +3,7 @@ import os
 from natsort import natsorted
 
 # image_folder = '/home/siddiqui/DisCo/exp/ntu60-perframe-20eps/eval_step_1107/pred_gs7.5_scale-cond1.0-ref1.0'
-image_folder = '/home/kzhai/DisCo/exp/ntu60-fixpose/eval_step_6999/pred_gs7.5_scale-cond1.0-ref1.0'
+image_folder = '/home/kzhai/DisCo/exp/ntu60-fixpose/eval_step_999/pred_gs7.5_scale-cond1.0-ref1.0'
 images = [img for img in os.listdir(image_folder)]
 
 for video in os.listdir('/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'):
@@ -14,6 +14,7 @@ for video in os.listdir('/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'):
         vid_images = natsorted(vid_images)
         frame = cv2.imread(os.path.join(image_folder, vid_images[0]))
         height, width, layers = frame.shape
+        print(video)
         video = cv2.VideoWriter(f'{video}.avi', 0, 10, (width,height))
 
         for img in vid_images:
@@ -22,3 +23,8 @@ for video in os.listdir('/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'):
         video.release()
         exit()
 
+
+# images = natsorted(images)
+# frame = cv2.imread(os.path.join(image_folder, images[0]))
+# height, width, layers = frame.shape
+# video = cv2.VideoWriter('test.avi')
