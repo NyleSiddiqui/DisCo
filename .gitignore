@@ -65,3 +65,35 @@ coverage.xml
 
 # Sphinx documentation
 docs/_build/
+
+# Images
+*.png
+*.jpg
+
+# Videos 
+*.mp4
+*.avi
+
+# Logs
+*.out
+*.pkl
+wandb/
+
+# Bash scripts
+*.sh
+
+# Python files
+./.test.py
+
+# Weights
+./.groundingdino_swint_ogc.pth
+
+.vscode/
+annotator/
+exp/
+figures/
+openpose_dump/
+sd-image-variations-diffusers/
+segment_anything/
+
+
