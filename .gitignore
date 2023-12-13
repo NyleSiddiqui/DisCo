@@ -80,7 +80,7 @@ docs/_build/
 wandb/
 
 # Bash scripts
-*.sh
+random.sh
 
 # Python files
 ./.test.py
