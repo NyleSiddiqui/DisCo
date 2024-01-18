@@ -2,7 +2,7 @@ import cv2
 import os
 from natsort import natsorted
 
-image_folder = '/home/siddiqui/DisCo/exp/ntu60-perframe-20eps/eval_step_1107/pred_gs7.5_scale-cond1.0-ref1.0'
+image_folder = "/home/siddiqui/DisCo/exp/pretrained-ft-continue2/eval_step_79999/pred_gs7.5_scale-cond1.0-ref1.0/"
 images = [img for img in os.listdir(image_folder)]
 
 for video in os.listdir('/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'):
@@ -23,5 +23,4 @@ for video in os.listdir('/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'):
             video.write(cv2.imread(os.path.join(image_folder, img)))
 
         video.release()
-        exit()
 

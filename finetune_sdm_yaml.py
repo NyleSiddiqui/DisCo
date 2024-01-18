@@ -122,6 +122,8 @@ def main_worker(args):
         print(f'train info: {train_info}', flush=True)
         _, images_per_batch, args.iter_per_ep, args.num_iters = train_info
 
+
+        ######################################## Custom code to load NTU dataset #############################################################################
         train_dataloader_gen = omniDataLoader('train')
         eval_dataloader_gen = omniDataLoader('test')
         train_dataloader = DataLoader(train_dataloader_gen, batch_size=args.local_train_batch_size, shuffle=True, num_workers=args.num_workers, drop_last=True)
@@ -131,6 +133,7 @@ def main_worker(args):
         args.iter_per_ep = 283586 // images_per_batch
         args.num_iters = args.iter_per_ep * args.epochs
         print(f'new train info: {images_per_batch, args.iter_per_ep, args.num_iters}, {len(train_dataloader)}')
+        ######################################## Custom code to load NTU dataset #############################################################################
 
         if args.eval_step <= 5.0:
             args.eval_step =  args.eval_step * args.iter_per_ep

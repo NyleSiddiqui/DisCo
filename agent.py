@@ -389,6 +389,7 @@ class Agent():
         # This function is used to do evaluating after training.
         if not self.pretrained_model:
             logger.warning('You should create a new config file and specify pretrained_model in Args when using eval.')
+        print('---------entered eval, pretrained loaded correctly-----------')
         # Wrap models before evaluating. This will support ddp evaluating.
         self.move_model_to_cuda()
         self.setup_wandb()

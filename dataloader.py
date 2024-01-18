@@ -22,25 +22,25 @@ import timeit
 
 class omniDataLoader(Dataset):
     def __init__(self, data_split, height=270, width=480, shuffle=True):
-        self.hdf5_path = '/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120'
         self.video_path = '/home/c3-0/datasets/NTU_RGBD_120/nturgb+d_rgb/'
         self.mask_path = '/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_masks/'
 
         self.data_split = data_split
         if data_split == "train":
-           self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Train_CV-diffusion.csv'
+          self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Train_CV-diffusion.csv'
         else:
-           self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Test_CV-diffusion.csv'
+          self.annotations = '/home/siddiqui/Action_Biometrics-RGB/data/NTU60Test_CV-diffusion.csv'
+
         self.rgb_list = [x for x in sorted(os.listdir(self.video_path)) if int(x[17:20]) < 6]
         self.pose_list = [x for x in sorted(os.listdir("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/")) if x.endswith('.npy') and int(x[17:20]) < 6]
         self.poses = {}
 
-        for j, pose_path in enumerate(self.pose_list):
-            if j % 1000 == 0:
-                print(j)
-
-            pose = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", pose_path), allow_pickle=True).item()['rgb_body0'].astype(float)
-            self.poses[pose_path[:20]] = pose
+#        for j, pose_path in enumerate(self.pose_list):
+#            if j % 1000 == 0:
+#                print(j)
+#
+#            pose = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", pose_path), allow_pickle=True).item()['rgb_body0'].astype(float)
+#            self.poses[pose_path[:20]] = pose
         
 
         self.videos = []
@@ -49,7 +49,7 @@ class omniDataLoader(Dataset):
         
         for count, row in enumerate(open(self.annotations, 'r').readlines()[1:]):
             if data_split == 'test':
-                if count > 50000:
+                if count > 100000:
                     break
             row = row.replace('\n', '')
             if int(row.split('_')[-1]) == 0:
@@ -120,7 +120,7 @@ class omniDataLoader(Dataset):
         items = {}
         video_id = self.videos[index]
             
-        frame, skeleton, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet = item_creation(self, video_id, self.hdf5_path, self.video_path, self.mask_path, self.height, self.width)
+        frame, skeleton, ref_image, ref_image_controlnet, ref_image_vae, background_mask, background_mask_controlnet = item_creation(self, video_id, self.video_path, self.mask_path, self.height, self.width)
         items['img_key'] = video_id
         items['input_text'] = 'NULL'
         items['label_imgs'] = frame
@@ -131,28 +131,25 @@ class omniDataLoader(Dataset):
         items['background_mask'] = background_mask 
         items['background_mask_controlnet'] = background_mask_controlnet 
 
+        
         return items
         
             
-def item_creation(self, video_id, hdf5_path, video_path, mask_path, height, width):
+def item_creation(self, video_id, video_path, mask_path, height, width):
     # Read video & skeleton, select given frame 
     split = video_id.split('_')
     video_id, frame_ind = '_'.join(split[:-1]), int(split[-1])
   
     vr = VideoReader(os.path.join(video_path, video_id), height=height, width=width)
-    if frame_ind > 150:
-        print('img entered')
-        for i, frame in enumerate(vr):
-            if i == frame_id:
-                frame2 = vr[frame_ind].float() / 255.
-                frame = frame.float() / 255.
-                print(np.unique(frame-frame2))
+    
     frame = vr[frame_ind].float() / 255.
     ref_image = vr[0].float() / 255.
     
-    # skeleton = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", f'{video_id[:-8]}.skeleton.npy'), allow_pickle=True).item()['rgb_body0'][frame_ind].astype(float)
-    skeleton = self.poses[f'{video_id[:20]}'][frame_ind-1]
+    skeleton = np.load(os.path.join("/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/", f'{video_id[:-8]}.skeleton.npy'), allow_pickle=True).item()['rgb_body0'][frame_ind].astype(float)
+    #skeleton = self.poses[f'{video_id[:20]}'][frame_ind-1]
     skeleton = skeleton_to_image(skeleton)
+    #skeleton = Image.open(f'/home/kzhai/frame_data/NTU_RGBD_120_poses/images/{video_id[:-8]}/{frame_ind}')
+    #skeleton = Image.open(f'/home/siddiqui/Action_Biometrics-RGB/frame_data/ntu_rgbd_120_skeletons/{video_id[:-8]}/{frame_ind}')
     
 
     # Permute before transforms
@@ -161,7 +158,7 @@ def item_creation(self, video_id, hdf5_path, video_path, mask_path, height, widt
 
 
     # Load masks, define reference information
-    master_ref_mask = np.load(f'{mask_path}/{video_id[:-8]}/mask{0}.npy').astype(float) #TODO: Seems like for now, first frame mask is used. I will start training with this, but should revisit
+    master_ref_mask = np.load(f'{mask_path}{video_id[:-8]}/mask{0}.npy').astype(float) #TODO: Seems like for now, first frame mask is used. I will start training with this, but should revisit
     master_ref_mask = np.stack([master_ref_mask, master_ref_mask, master_ref_mask], axis=2)
     # print(np.unique(master_ref_mask))
     ref_image_controlnet = ref_image.copy()
